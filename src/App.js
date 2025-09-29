@@ -16,13 +16,13 @@ function App() {
   const getRSSUrl = (feedType) => {
     switch (feedType) {
       case 'home':
-        return 'https://www.reddit.com/.rss';
+        return 'https://www.reddit.com/.rss?geo_filter=GLOBAL';
       case 'popular':
-        return 'https://www.reddit.com/r/popular/.rss';
+        return 'https://www.reddit.com/r/popular/.rss?geo_filter=GLOBAL';
       case 'all':
-        return 'https://www.reddit.com/r/all/.rss';
+        return 'https://www.reddit.com/r/all/.rss?geo_filter=GLOBAL';
       default:
-        return `https://www.reddit.com/r/${feedType}/.rss`;
+        return `https://www.reddit.com/r/${feedType}/.rss?geo_filter=GLOBAL`;
     }
   };
   
@@ -87,6 +87,19 @@ function App() {
           const rssLink = link.includes('/comments/') ? link + '.rss' : link;
 
           return { title, link: rssLink, content, author, updated, subreddit: feedType, id };
+        }).filter(post => {
+          // Filter out image and gallery posts
+          const isImagePost = post.link.includes('i.redd.it') || 
+                             post.link.includes('i.imgur.com') ||
+                             post.link.includes('/gallery/') ||
+                             post.link.includes('gallery.reddit.com');
+          
+          // Also check if content is just an image tag with minimal text
+          const hasOnlyImage = post.content && 
+                              post.content.includes('<img') && 
+                              post.content.replace(/<[^>]*>/g, '').trim().length < 50;
+          
+          return !isImagePost && !hasOnlyImage;
         });
         setPosts(parsedPosts);
       } else {
@@ -107,10 +120,10 @@ function App() {
   }, [currentFeed]);
 
   // Function to fetch and display individual post RSS content
-  const fetchPostContent = async (postUrl, postTitle) => {
+  const fetchPostContent = async (postUrl, postTitle, subreddit) => {
     setPostLoading(true);
     setCurrentView('post');
-    setCurrentPost({ title: postTitle, url: postUrl });
+    setCurrentPost({ title: postTitle, url: postUrl, subreddit: subreddit });
     
     try {
       console.log('Fetching post RSS:', postUrl);
@@ -294,18 +307,34 @@ function App() {
     return (
       <div className="viewport">
         <div className="App main-menu">
-          <header className="app-header">
-            <h1>r1-reddit</h1>
-          </header>
+          <div className="home-hero">
+            <div className="reddit-logo">
+              <div className="reddit-icon">r/</div>
+              <h1 className="home-title">reddit</h1>
+            </div>
+            <p className="home-subtitle">for Rabbit R1</p>
+          </div>
           <main className="main-menu-container">
-            <button className="main-menu-button" onClick={() => selectFeed('home')}>
-              Home
+            <button className="main-menu-button home-button" onClick={() => selectFeed('home')}>
+              <span className="button-icon">🏠</span>
+              <span className="button-content">
+                <span className="button-title">Home</span>
+                <span className="button-desc">Your feed</span>
+              </span>
             </button>
-            <button className="main-menu-button" onClick={() => selectFeed('popular')}>
-              Popular
+            <button className="main-menu-button popular-button" onClick={() => selectFeed('popular')}>
+              <span className="button-icon">🔥</span>
+              <span className="button-content">
+                <span className="button-title">Popular</span>
+                <span className="button-desc">Trending posts</span>
+              </span>
             </button>
-            <button className="main-menu-button" onClick={() => selectFeed('all')}>
-              All
+            <button className="main-menu-button all-button" onClick={() => selectFeed('all')}>
+              <span className="button-icon">🌐</span>
+              <span className="button-content">
+                <span className="button-title">All</span>
+                <span className="button-desc">Everything</span>
+              </span>
             </button>
           </main>
         </div>
@@ -359,8 +388,8 @@ function App() {
       <div className="viewport">
         <div className="App">
           <header className="app-header">
-            <button className="back-button" onClick={() => setCurrentView('main')}>←</button>
             <h1>r/{currentFeed}</h1>
+            <button className="back-button" onClick={() => setCurrentView('main')}>←</button>
           </header>
           <main className="posts-container" ref={postsContainerRef}>
             {posts.map((post, index) => (
@@ -368,7 +397,7 @@ function App() {
                 <h2 className="post-title">
                   <button 
                     className="post-link" 
-                    onClick={() => fetchPostContent(post.link, post.title)}
+                    onClick={() => fetchPostContent(post.link, post.title, currentFeed)}
                   >
                     {post.title}
                   </button>
@@ -391,7 +420,8 @@ function App() {
       <div className="viewport">
         <div className="App">
           <header className="post-header">
-            <button className="back-button" onClick={goBackToFeed}>← Back</button>
+            <h1 className="post-subreddit">r/{currentPost?.subreddit || 'reddit'}</h1>
+            <button className="back-button" onClick={goBackToFeed}>←</button>
           </header>
           <main className="post-content-container" ref={postsContainerRef}>
             {postLoading ? (

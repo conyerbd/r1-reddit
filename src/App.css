@@ -40,7 +40,9 @@ body {
 
 /* Header with Reddit style */
 .app-header {
-  text-align: center;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   padding: 8px 6px;
   border-bottom: 2px solid #ff4500;
   position: fixed;
@@ -166,78 +168,161 @@ body {
 .main-menu {
   display: flex;
   flex-direction: column;
-  justify-content: center;
+  justify-content: space-between;
   align-items: center;
   height: 100%;
+  background: linear-gradient(135deg, #ff4500 0%, #ff6a33 100%);
+  padding: 16px 0 12px 0;
 }
 
+/* Home hero section */
+.home-hero {
+  text-align: center;
+  padding: 8px 0;
+}
+
+.reddit-logo {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 6px;
+}
+
+.reddit-icon {
+  font-size: 32px;
+  font-weight: bold;
+  color: white;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  font-family: 'Courier New', monospace;
+}
+
+.home-title {
+  font-size: 28px;
+  font-weight: bold;
+  color: white;
+  margin: 0;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.2);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.home-subtitle {
+  font-size: 10px;
+  color: rgba(255, 255, 255, 0.9);
+  margin: 0;
+  font-weight: 500;
+  letter-spacing: 0.5px;
+}
+
+/* Main menu container */
 .main-menu-container {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 8px;
   width: 100%;
-  padding: 20px;
+  padding: 0 16px;
 }
 
 .main-menu-button {
-  background: #ff4500;
-  color: white;
+  background: white;
+  color: #1c1c1c;
   border: none;
-  border-radius: 8px;
-  padding: 16px;
-  font-size: 18px;
-  font-weight: bold;
+  border-radius: 12px;
+  padding: 10px 12px;
+  font-size: 16px;
+  font-weight: 600;
   cursor: pointer;
   width: 100%;
-  text-align: center;
+  text-align: left;
   font-family: inherit;
-  transition: background-color 0.2s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
-.main-menu-button:hover {
-  background: #cc3700;
+.main-menu-button:active {
+  transform: scale(0.98);
+}
+
+.button-icon {
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.button-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex-grow: 1;
+}
+
+.button-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1c1c1c;
+  line-height: 1;
+}
+
+.button-desc {
+  font-size: 9px;
+  color: #666;
+  font-weight: 400;
+  line-height: 1;
 }
 
 /* Back button */
 .back-button {
-  background: none;
+  background: #ff4500;
   border: none;
-  color: #ff4500;
+  color: white;
   font-size: 12px;
   font-weight: 600;
   cursor: pointer;
-  padding: 2px 4px;
+  padding: 4px 8px;
   margin: 0;
   font-family: inherit;
-  height: 20px;
-  line-height: 16px;
+  border-radius: 4px;
+  line-height: 1;
 }
 
-.back-button:hover {
-  background: rgba(255, 69, 0, 0.1);
-  border-radius: 4px;
+.back-button:active {
+  background: #cc3700;
 }
 
 /* Post header - smaller than main header */
 .post-header {
-  padding: 4px 6px;
-  border-bottom: 1px solid #ff4500;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 6px;
+  border-bottom: 2px solid #ff4500;
   position: fixed;
   top: 0;
   left: 0;
   width: 240px;
   background: #ffffff;
   z-index: 1000;
-  height: 24px;
+  height: auto;
+}
+
+.post-subreddit {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 16px;
+  font-weight: bold;
+  color: #ff4500;
+  margin: 0;
+  line-height: 1;
 }
 
 /* Post content container */
 .post-content-container {
   position: absolute;
-  top: 24px; /* Smaller header height */
+  top: 42px; /* Match feed header height */
   left: 0;
   width: 240px;
-  height: calc(282px - 24px);
+  height: calc(282px - 42px);
   padding: 6px;
   overflow-y: auto;
   scroll-behavior: smooth;
