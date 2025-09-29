@@ -1,0 +1,324 @@
+/* Reddit Front Page UI - Optimized for Rabbit R1 240x282 screen */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+  color: #1c1c1c;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* Total device viewport */
+.viewport {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 240px;
+  height: 282px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+/* App container */
+.App {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 240px;
+  height: 282px;
+  background: #ffffff;
+  color: #1c1c1c;
+  overflow: hidden;
+  outline: none; /* Remove default focus outline for cleaner look */
+}
+
+/* Header with Reddit style */
+.app-header {
+  text-align: center;
+  padding: 8px 6px;
+  border-bottom: 2px solid #ff4500;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 240px;
+  background: #ffffff;
+  z-index: 1000;
+}
+
+.app-header h1 {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 18px;
+  font-weight: bold;
+  color: #ff4500;
+  margin: 0;
+  line-height: 1;
+}
+
+.last-updated {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 8px;
+  color: #666;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+/* Loading and error states */
+.loading, .error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  font-size: 12px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+.error {
+  color: #d93025;
+}
+
+/* Posts container */
+.posts-container {
+  position: absolute;
+  top: 42px; /* Adjusted for header height */
+  left: 0;
+  width: 240px;
+  height: calc(282px - 42px);
+  padding: 6px;
+  overflow-y: auto;
+  scroll-behavior: smooth; /* Smooth scrolling for better UX */
+}
+
+/* Post card styling */
+.post-card {
+  border-bottom: 1px solid #e2e2e2;
+  padding: 8px 2px;
+  margin-bottom: 4px;
+  background: #ffffff;
+}
+
+.post-card:last-child {
+  border-bottom: none;
+}
+
+.post-card:hover {
+  background: #f8f9fa;
+}
+
+/* Post title - larger and bolder */
+.post-title {
+  margin: 0 0 4px 0;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.post-link {
+  background: none;
+  border: none;
+  color: #1c1c1c;
+  text-decoration: none;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1.2;
+  font-weight: 600;
+  text-align: left;
+  padding: 0;
+  font-family: inherit;
+}
+
+.post-link:hover {
+  text-decoration: underline;
+  color: #ff4500;
+}
+
+
+
+/* Post metadata */
+.post-meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-top: 6px;
+}
+
+.post-author {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #ff4500;
+  font-size: 9px;
+  font-weight: 600;
+}
+
+/* Post date */
+.post-date {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #888;
+  font-size: 9px;
+  margin-left: auto;
+}
+
+/* Main menu */
+.main-menu {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+}
+
+.main-menu-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+  padding: 20px;
+}
+
+.main-menu-button {
+  background: #ff4500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 16px;
+  font-size: 18px;
+  font-weight: bold;
+  cursor: pointer;
+  width: 100%;
+  text-align: center;
+  font-family: inherit;
+  transition: background-color 0.2s;
+}
+
+.main-menu-button:hover {
+  background: #cc3700;
+}
+
+/* Back button */
+.back-button {
+  background: none;
+  border: none;
+  color: #ff4500;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  margin: 0;
+  font-family: inherit;
+  height: 20px;
+  line-height: 16px;
+}
+
+.back-button:hover {
+  background: rgba(255, 69, 0, 0.1);
+  border-radius: 4px;
+}
+
+/* Post header - smaller than main header */
+.post-header {
+  padding: 4px 6px;
+  border-bottom: 1px solid #ff4500;
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 240px;
+  background: #ffffff;
+  z-index: 1000;
+  height: 24px;
+}
+
+/* Post content container */
+.post-content-container {
+  position: absolute;
+  top: 24px; /* Smaller header height */
+  left: 0;
+  width: 240px;
+  height: calc(282px - 24px);
+  padding: 6px;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+/* Main post title */
+.main-post-title {
+  font-size: 16px;
+  font-weight: bold;
+  color: #1c1c1c;
+  margin-bottom: 12px;
+  line-height: 1.3;
+  padding-bottom: 8px;
+  border-bottom: 2px solid #ff4500;
+}
+
+/* Content entries */
+.content-entry {
+  margin-bottom: 12px;
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.content-entry.main-post {
+  background: #f8f9fa;
+  border-left: 3px solid #ff4500;
+}
+
+.content-entry.comment {
+  background: #ffffff;
+  border-left: 2px solid #e2e2e2;
+}
+
+/* Comment header */
+.comment-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.comment-author {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #ff4500;
+  font-size: 10px;
+  font-weight: 600;
+}
+
+.comment-time {
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  color: #888;
+  font-size: 9px;
+}
+
+/* Entry content */
+.entry-content {
+  font-size: 12px;
+  line-height: 1.4;
+  color: #1c1c1c;
+  white-space: pre-wrap;
+}
+
+/* Custom scrollbar */
+.posts-container::-webkit-scrollbar,
+.post-content-container::-webkit-scrollbar {
+  width: 4px;
+}
+.posts-container::-webkit-scrollbar-track,
+.post-content-container::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+.posts-container::-webkit-scrollbar-thumb,
+.post-content-container::-webkit-scrollbar-thumb {
+  background: #ff4500;
+  border-radius: 2px;
+}
+.posts-container::-webkit-scrollbar-thumb:hover,
+.post-content-container::-webkit-scrollbar-thumb:hover {
+  background: #cc3700;
+}
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #ff4500 #f1f1f1;
+}
