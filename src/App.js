@@ -85,21 +85,31 @@ function App() {
           const updated = updatedElement?.textContent || new Date().toISOString();
           const id = idElement?.textContent || `post-${index}`;
           const rssLink = link.includes('/comments/') ? link + '.rss' : link;
+          
+          // Extract actual subreddit from the link (format: /r/SubredditName/)
+          const subredditMatch = link.match(/\/r\/([^/]+)\//);
+          const actualSubreddit = subredditMatch ? subredditMatch[1] : feedType;
 
-          return { title, link: rssLink, content, author, updated, subreddit: feedType, id };
+          return { title, link: rssLink, content, author, updated, subreddit: actualSubreddit, id };
         }).filter(post => {
-          // Filter out image and gallery posts
+          // Filter out image, gallery, and video posts
           const isImagePost = post.link.includes('i.redd.it') || 
                              post.link.includes('i.imgur.com') ||
                              post.link.includes('/gallery/') ||
                              post.link.includes('gallery.reddit.com');
+          
+          const isVideoPost = post.link.includes('v.redd.it') ||
+                             post.link.includes('youtube.com') ||
+                             post.link.includes('youtu.be') ||
+                             post.link.includes('vimeo.com') ||
+                             post.link.includes('streamable.com');
           
           // Also check if content is just an image tag with minimal text
           const hasOnlyImage = post.content && 
                               post.content.includes('<img') && 
                               post.content.replace(/<[^>]*>/g, '').trim().length < 50;
           
-          return !isImagePost && !hasOnlyImage;
+          return !isImagePost && !isVideoPost && !hasOnlyImage;
         });
         setPosts(parsedPosts);
       } else {
@@ -166,24 +176,41 @@ function App() {
       const entries = xmlDoc.querySelectorAll('entry');
       
       if (entries.length > 0) {
+        // Filter to get only top-level comments (exclude nested replies)
+        const allEntries = Array.from(entries).map((entry, index) => {
+          const title = entry.querySelector('title')?.textContent || '';
+          const content = entry.querySelector('content')?.textContent || '';
+          const author = entry.querySelector('author name')?.textContent?.replace('/u/', '') || 'Unknown';
+          const updated = entry.querySelector('updated')?.textContent || '';
+          const id = entry.querySelector('id')?.textContent || `entry-${index}`;
+          const link = entry.querySelector('link')?.getAttribute('href') || '';
+          const isMainPost = index === 0; // First entry is usually the main post
+          
+          // Check if this is a top-level comment by counting slashes in the comment ID portion
+          // Top-level comments have format: /r/sub/comments/postid/_/commentid/
+          // Child comments have format: /r/sub/comments/postid/_/parentid/childid/
+          const commentMatch = link.match(/\/comments\/[^/]+\/[^/]+\/([^/]+(?:\/[^/]+)*)/);
+          const isTopLevel = isMainPost || (commentMatch && commentMatch[1].split('/').filter(Boolean).length === 1);
+          
+          return {
+            title,
+            content,
+            author,
+            updated,
+            isMainPost,
+            isTopLevel,
+            id
+          };
+        });
+        
+        // Get main post and top 10 top-level comments
+        const mainPost = allEntries[0];
+        const topLevelComments = allEntries.slice(1).filter(entry => entry.isTopLevel).slice(0, 10);
+        const filteredEntries = [mainPost, ...topLevelComments];
+        
         const postData = {
           title: xmlDoc.querySelector('title')?.textContent || postTitle,
-          entries: Array.from(entries).slice(0, 11).map((entry, index) => {
-            const title = entry.querySelector('title')?.textContent || '';
-            const content = entry.querySelector('content')?.textContent || '';
-            const author = entry.querySelector('author name')?.textContent?.replace('/u/', '') || 'Unknown';
-            const updated = entry.querySelector('updated')?.textContent || '';
-            const isMainPost = index === 0; // First entry is usually the main post
-            
-            return {
-              title,
-              content,
-              author,
-              updated,
-              isMainPost,
-              id: entry.querySelector('id')?.textContent || `entry-${index}`
-            };
-          })
+          entries: filteredEntries
         };
         
         setPostContent(postData);
@@ -302,6 +329,17 @@ function App() {
     return text;
   };
 
+  // Helper function to remove subreddit name from post title
+  const cleanPostTitle = (title) => {
+    if (!title) return '';
+    
+    // Remove subreddit suffix (formats: " : SubredditName" or " - SubredditName")
+    // Match pattern: " : text" or " - text" at the end of the title
+    const cleaned = title.replace(/\s+[:|-]\s+[A-Za-z0-9_]+\s*$/, '');
+    
+    return cleaned;
+  };
+
 
   if (currentView === 'main') {
     return (
@@ -397,7 +435,7 @@ function App() {
                 <h2 className="post-title">
                   <button 
                     className="post-link" 
-                    onClick={() => fetchPostContent(post.link, post.title, currentFeed)}
+                    onClick={() => fetchPostContent(post.link, post.title, post.subreddit)}
                   >
                     {post.title}
                   </button>
@@ -430,7 +468,7 @@ function App() {
               <div className="error">{postContent.error}</div>
             ) : postContent ? (
               <div className="post-content">
-                <h2 className="main-post-title">{postContent.title}</h2>
+                <h2 className="main-post-title">{cleanPostTitle(postContent.title)}</h2>
                 {postContent.entries?.map((entry, index) => {
                   // Skip the main post if it only contains "submitted by" info
                   if (entry.isMainPost) {
