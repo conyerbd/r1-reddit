@@ -275,18 +275,17 @@ function App() {
       }
     };
 
-    // R1 scroll wheel events: "scroll" = wheel down, "scrollDown" = wheel up (backwards naming!)
+    // R1 scroll wheel events: directions are flipped!
+    // "scrollUp" = wheel turns up = moves content DOWN (increase scrollTop)
+    // "scrollDown" = wheel turns down = moves content UP (decrease scrollTop)
     const handleScrollDown = (event) => {
       event.preventDefault();
       scrollContainer(-40); // scrollDown event = moves content UP
     };
 
-    const handleScroll = (event) => {
-      // Only handle window-level scroll events from R1 wheel, not container scroll feedback
-      if (event.target !== postsContainerRef.current) {
-        event.preventDefault();
-        scrollContainer(40); // scroll event = moves content DOWN
-      }
+    const handleScrollUp = (event) => {
+      event.preventDefault();
+      scrollContainer(40); // scrollUp event = moves content DOWN
     };
 
     const handleKeyDown = (event) => {
@@ -307,9 +306,9 @@ function App() {
 
     // Add R1 scroll wheel event listeners
     window.addEventListener('scrollDown', handleScrollDown, { passive: false, capture: true });
-    window.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    window.addEventListener('scrollUp', handleScrollUp, { passive: false, capture: true });
     document.addEventListener('scrollDown', handleScrollDown, { passive: false, capture: true });
-    document.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    document.addEventListener('scrollUp', handleScrollUp, { passive: false, capture: true });
     
     // Add keyboard listener
     document.addEventListener('keydown', handleKeyDown);
@@ -317,9 +316,9 @@ function App() {
     // Cleanup event listeners on component unmount
     return () => {
       window.removeEventListener('scrollDown', handleScrollDown, { capture: true });
-      window.removeEventListener('scroll', handleScroll, { capture: true });
+      window.removeEventListener('scrollUp', handleScrollUp, { capture: true });
       document.removeEventListener('scrollDown', handleScrollDown, { capture: true });
-      document.removeEventListener('scroll', handleScroll, { capture: true });
+      document.removeEventListener('scrollUp', handleScrollUp, { capture: true });
       document.removeEventListener('keydown', handleKeyDown);
     };
   }, [loading, currentView]); // Re-run when loading state or view changes

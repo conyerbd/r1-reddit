@@ -1,4 +1,4 @@
-/* Reddit Front Page UI - Optimized for Rabbit R1 240x282 screen */
+/* Reddit Front Page UI - Optimized for Rabbit R1 240x320 screen */
 * {
   margin: 0;
   padding: 0;
@@ -20,7 +20,7 @@ body {
   top: 0;
   left: 0;
   width: 240px;
-  height: 282px;
+  height: 362px;
   background: #ffffff;
   overflow: hidden;
 }
@@ -31,7 +31,7 @@ body {
   top: 0;
   left: 0;
   width: 240px;
-  height: 282px;
+  height: 362px;
   background: #ffffff;
   color: #1c1c1c;
   overflow: hidden;
@@ -90,7 +90,7 @@ body {
   top: 42px; /* Adjusted for header height */
   left: 0;
   width: 240px;
-  height: calc(282px - 42px);
+  height: 320px;
   padding: 6px;
   overflow-y: auto;
   scroll-behavior: smooth; /* Smooth scrolling for better UX */
@@ -325,7 +325,7 @@ body {
   top: 42px; /* Match feed header height */
   left: 0;
   width: 240px;
-  height: calc(282px - 42px);
+  height: 320px;
   padding: 6px;
   overflow-y: auto;
   scroll-behavior: smooth;
