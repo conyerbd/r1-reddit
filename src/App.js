@@ -271,7 +271,10 @@ function App() {
     const scrollContainer = (amount) => {
       if (postsContainerRef.current) {
         const container = postsContainerRef.current;
-        container.scrollTop += amount;
+        container.scrollBy({
+          top: amount,
+          behavior: 'smooth'
+        });
       }
     };
 
