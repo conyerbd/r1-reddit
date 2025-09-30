@@ -20,7 +20,7 @@ body {
   top: 0;
   left: 0;
   width: 240px;
-  height: 320px;
+  height: 300px;
   background: #ffffff;
   overflow: hidden;
 }
@@ -31,7 +31,7 @@ body {
   top: 0;
   left: 0;
   width: 240px;
-  height: 320px;
+  height: 300px;
   background: #ffffff;
   color: #1c1c1c;
   overflow: hidden;
@@ -90,7 +90,7 @@ body {
   top: 42px; /* Adjusted for header height */
   left: 0;
   width: 240px;
-  height: calc(320px - 42px);
+  height: calc(300px - 42px);
   padding: 6px;
   overflow-y: auto;
   scroll-behavior: smooth; /* Smooth scrolling for better UX */
@@ -325,7 +325,7 @@ body {
   top: 42px; /* Match feed header height */
   left: 0;
   width: 240px;
-  height: calc(320px - 42px);
+  height: calc(300px - 42px);
   padding: 6px;
   overflow-y: auto;
   scroll-behavior: smooth;
