@@ -386,21 +386,18 @@ function App() {
           </div>
           <main className="main-menu-container">
             <button className="main-menu-button home-button" onClick={() => selectFeed('home')}>
-              <span className="button-icon">🏠</span>
               <span className="button-content">
                 <span className="button-title">Home</span>
                 <span className="button-desc">Your feed</span>
               </span>
             </button>
             <button className="main-menu-button popular-button" onClick={() => selectFeed('popular')}>
-              <span className="button-icon">🔥</span>
               <span className="button-content">
                 <span className="button-title">Popular</span>
                 <span className="button-desc">Trending posts</span>
               </span>
             </button>
             <button className="main-menu-button all-button" onClick={() => selectFeed('all')}>
-              <span className="button-icon">🌐</span>
               <span className="button-content">
                 <span className="button-title">All</span>
                 <span className="button-desc">Everything</span>
