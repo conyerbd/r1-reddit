@@ -6,12 +6,14 @@ function App() {
   const [currentFeed, setCurrentFeed] = useState(null); // e.g., 'popular', 'all', 'technology'
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(null);
   const [currentPost, setCurrentPost] = useState(null);
   const [postContent, setPostContent] = useState(null);
   const [postLoading, setPostLoading] = useState(false);
   const postsContainerRef = useRef(null);
   const [customSubreddit, setCustomSubreddit] = useState('');
+  const [lastPostId, setLastPostId] = useState(null); // For pagination
   
   // Smooth scrolling state
   const scrollVelocityRef = useRef(0);
@@ -21,16 +23,17 @@ function App() {
   const scrollBufferRef = useRef([]);
 
   // Function to get RSS URL based on feed type
-  const getRSSUrl = (feedType) => {
+  const getRSSUrl = (feedType, after = null) => {
+    const afterParam = after ? `&after=${after}` : '';
     switch (feedType) {
       case 'home':
-        return 'https://www.reddit.com/.rss?geo_filter=GLOBAL';
+        return `https://www.reddit.com/.rss?geo_filter=GLOBAL&limit=100${afterParam}`;
       case 'popular':
-        return 'https://www.reddit.com/r/popular/.rss?geo_filter=GLOBAL';
+        return `https://www.reddit.com/r/popular/.rss?geo_filter=GLOBAL&limit=100${afterParam}`;
       case 'all':
-        return 'https://www.reddit.com/r/all/.rss?geo_filter=GLOBAL';
+        return `https://www.reddit.com/r/all/.rss?geo_filter=GLOBAL&limit=100${afterParam}`;
       default:
-        return `https://www.reddit.com/r/${feedType}/.rss?geo_filter=GLOBAL`;
+        return `https://www.reddit.com/r/${feedType}/.rss?geo_filter=GLOBAL&limit=100${afterParam}`;
     }
   };
   
@@ -78,7 +81,8 @@ function App() {
 
       const entries = xmlDoc.querySelectorAll('entry');
       if (entries.length > 0) {
-        const parsedPosts = Array.from(entries).slice(0, 20).map((entry, index) => {
+        // Process all 100 entries from RSS feed, filter, then take first 20
+        const parsedPosts = Array.from(entries).map((entry, index) => {
           const titleElement = entry.querySelector('title');
           const linkElement = entry.querySelector('link');
           const contentElement = entry.querySelector('content');
@@ -100,26 +104,50 @@ function App() {
 
           return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id };
         }).filter(post => {
-          // Filter out image, gallery, and video posts
-          const isImagePost = post.link.includes('i.redd.it') || 
-                             post.link.includes('i.imgur.com') ||
-                             post.link.includes('/gallery/') ||
-                             post.link.includes('gallery.reddit.com');
+          // Check both the link and the content for media indicators
+          const combinedText = post.link + ' ' + (post.content || '');
           
-          const isVideoPost = post.link.includes('v.redd.it') ||
-                             post.link.includes('youtube.com') ||
-                             post.link.includes('youtu.be') ||
-                             post.link.includes('vimeo.com') ||
-                             post.link.includes('streamable.com');
+          // Filter out image posts
+          const isImagePost = combinedText.includes('i.redd.it') || 
+                             combinedText.includes('i.imgur.com') ||
+                             combinedText.includes('preview.redd.it') ||
+                             combinedText.includes('/gallery/') ||
+                             combinedText.includes('gallery.reddit.com') ||
+                             combinedText.includes('.jpg') ||
+                             combinedText.includes('.jpeg') ||
+                             combinedText.includes('.png') ||
+                             combinedText.includes('.gif');
           
-          // Also check if content is just an image tag with minimal text
+          // Filter out video posts
+          const isVideoPost = combinedText.includes('v.redd.it') ||
+                             combinedText.includes('youtube.com') ||
+                             combinedText.includes('youtu.be') ||
+                             combinedText.includes('vimeo.com') ||
+                             combinedText.includes('streamable.com') ||
+                             combinedText.includes('external-preview.redd.it');
+          
+          // Check if content has an image tag but minimal text content
           const hasOnlyImage = post.content && 
                               post.content.includes('<img') && 
-                              post.content.replace(/<[^>]*>/g, '').trim().length < 50;
+                              post.content.replace(/<[^>]*>/g, '').trim().length < 100;
           
-          return !isImagePost && !isVideoPost && !hasOnlyImage;
-        });
+          // Also filter out posts from image-focused subreddits
+          const imageSubreddits = ['pics', 'images', 'itookapicture', 'earthporn', 'memes', 
+                                   'dankmemes', 'meirl', 'me_irl', 'comics', 'gifs'];
+          const isImageSubreddit = imageSubreddits.some(sub => 
+            post.subreddit.toLowerCase() === sub.toLowerCase()
+          );
+          
+          return !isImagePost && !isVideoPost && !hasOnlyImage && !isImageSubreddit;
+        }).slice(0, 20); // Take first 20 posts after filtering
+        
         setPosts(parsedPosts);
+        
+        // Store the last post ID for pagination
+        if (parsedPosts.length > 0) {
+          const lastId = parsedPosts[parsedPosts.length - 1].id;
+          setLastPostId(lastId);
+        }
       } else {
         throw new Error('No entries found in RSS feed');
       }
@@ -128,6 +156,121 @@ function App() {
       setError(`Failed to fetch posts: ${err.message}`);
     } finally {
       setLoading(false);
+    }
+  };
+  
+  const loadMorePosts = async () => {
+    if (!currentFeed || !lastPostId || loadingMore) return;
+    
+    try {
+      console.log('Loading more posts after:', lastPostId);
+      setLoadingMore(true);
+      setError(null);
+
+      const rssUrl = getRSSUrl(currentFeed, lastPostId);
+      const proxies = [
+        `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(rssUrl)}`,
+        `https://corsproxy.io/?${encodeURIComponent(rssUrl)}`,
+        `https://api.allorigins.win/raw?url=${encodeURIComponent(rssUrl)}`,
+        rssUrl
+      ];
+
+      let xmlContent = null;
+      for (const proxyUrl of proxies) {
+        try {
+          const response = await fetch(proxyUrl);
+          if (response.ok) {
+            const text = await response.text();
+            if (text.includes('<?xml')) {
+              xmlContent = text;
+              break;
+            }
+          }
+        } catch (proxyErr) {
+          console.log('Proxy failed:', proxyUrl, proxyErr.message);
+        }
+      }
+
+      if (!xmlContent) {
+        throw new Error('All proxy attempts failed');
+      }
+
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+      const parserError = xmlDoc.querySelector('parsererror');
+      if (parserError) {
+        throw new Error(`XML parsing failed: ${parserError.textContent}`);
+      }
+
+      const entries = xmlDoc.querySelectorAll('entry');
+      if (entries.length > 0) {
+        const parsedPosts = Array.from(entries).map((entry, index) => {
+          const titleElement = entry.querySelector('title');
+          const linkElement = entry.querySelector('link');
+          const contentElement = entry.querySelector('content');
+          const authorElement = entry.querySelector('author name');
+          const updatedElement = entry.querySelector('updated');
+          const idElement = entry.querySelector('id');
+
+          const title = titleElement?.textContent || `Post ${index + 1}`;
+          const link = linkElement?.getAttribute('href') || linkElement?.textContent || '';
+          const content = contentElement?.textContent || '';
+          const author = authorElement?.textContent?.replace('/u/', '') || 'Unknown';
+          const updated = updatedElement?.textContent || new Date().toISOString();
+          const id = idElement?.textContent || `post-${index}`;
+          const jsonLink = link.includes('/comments/') ? link + '.json' : link;
+          
+          const subredditMatch = link.match(/\/r\/([^/]+)\//);
+          const actualSubreddit = subredditMatch ? subredditMatch[1] : currentFeed;
+
+          return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id };
+        }).filter(post => {
+          const combinedText = post.link + ' ' + (post.content || '');
+          
+          const isImagePost = combinedText.includes('i.redd.it') || 
+                             combinedText.includes('i.imgur.com') ||
+                             combinedText.includes('preview.redd.it') ||
+                             combinedText.includes('/gallery/') ||
+                             combinedText.includes('gallery.reddit.com') ||
+                             combinedText.includes('.jpg') ||
+                             combinedText.includes('.jpeg') ||
+                             combinedText.includes('.png') ||
+                             combinedText.includes('.gif');
+          
+          const isVideoPost = combinedText.includes('v.redd.it') ||
+                             combinedText.includes('youtube.com') ||
+                             combinedText.includes('youtu.be') ||
+                             combinedText.includes('vimeo.com') ||
+                             combinedText.includes('streamable.com') ||
+                             combinedText.includes('external-preview.redd.it');
+          
+          const hasOnlyImage = post.content && 
+                              post.content.includes('<img') && 
+                              post.content.replace(/<[^>]*>/g, '').trim().length < 100;
+          
+          const imageSubreddits = ['pics', 'images', 'itookapicture', 'earthporn', 'memes', 
+                                   'dankmemes', 'meirl', 'me_irl', 'comics', 'gifs'];
+          const isImageSubreddit = imageSubreddits.some(sub => 
+            post.subreddit.toLowerCase() === sub.toLowerCase()
+          );
+          
+          return !isImagePost && !isVideoPost && !hasOnlyImage && !isImageSubreddit;
+        }).slice(0, 20);
+        
+        // Append new posts to existing ones
+        setPosts(prevPosts => [...prevPosts, ...parsedPosts]);
+        
+        // Update last post ID for next pagination
+        if (parsedPosts.length > 0) {
+          const lastId = parsedPosts[parsedPosts.length - 1].id;
+          setLastPostId(lastId);
+        }
+      }
+    } catch (err) {
+      console.error('Error loading more posts:', err);
+      setError(`Failed to load more posts: ${err.message}`);
+    } finally {
+      setLoadingMore(false);
     }
   };
   
@@ -257,6 +400,7 @@ function App() {
   const selectFeed = (feedType) => {
     setCurrentFeed(feedType);
     setCurrentView('feed');
+    setLastPostId(null); // Reset pagination when switching feeds
   };
 
   const handleCustomSubreddit = (e) => {
@@ -552,6 +696,15 @@ function App() {
                 </div>
               </article>
             ))}
+            {lastPostId && (
+              <button 
+                className="load-more-button" 
+                onClick={loadMorePosts}
+                disabled={loadingMore}
+              >
+                {loadingMore ? 'Loading...' : 'Load More'}
+              </button>
+            )}
           </main>
         </div>
       </div>
