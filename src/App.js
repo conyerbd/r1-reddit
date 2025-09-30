@@ -11,8 +11,14 @@ function App() {
   const [postContent, setPostContent] = useState(null);
   const [postLoading, setPostLoading] = useState(false);
   const postsContainerRef = useRef(null);
-  const lastScrollTimeRef = useRef(Date.now());
   const [customSubreddit, setCustomSubreddit] = useState('');
+  
+  // Smooth scrolling state
+  const scrollVelocityRef = useRef(0);
+  const scrollDirectionRef = useRef(0);
+  const lastTickTimeRef = useRef(Date.now());
+  const animationFrameRef = useRef(null);
+  const scrollBufferRef = useRef([]);
 
   // Function to get RSS URL based on feed type
   const getRSSUrl = (feedType) => {
@@ -264,34 +270,83 @@ function App() {
     }
   };
 
-  // Scroll wheel and keyboard functionality for Rabbit R1 device
+  // Smooth scrolling with momentum and buffering for Rabbit R1 device
   useEffect(() => {
-    const scrollContainer = (direction) => {
-      if (postsContainerRef.current) {
-        const container = postsContainerRef.current;
+    // Constants for smooth scrolling
+    const BASE_VELOCITY = 2;        // Start slow
+    const MAX_VELOCITY = 15;        // Max speed when accelerating
+    const ACCELERATION = 0.8;       // How fast we speed up
+    const DECELERATION = 0.92;      // How fast we slow down (0.92 = retain 92% velocity each frame)
+    const VELOCITY_THRESHOLD = 0.1; // Stop scrolling below this velocity
+    const TICK_TIMEOUT = 150;       // Time to consider scrolling stopped (ms)
+    
+    // Smooth animation loop using requestAnimationFrame
+    const animateScroll = () => {
+      if (!postsContainerRef.current) return;
+      
+      const container = postsContainerRef.current;
+      const now = Date.now();
+      const timeSinceLastTick = now - lastTickTimeRef.current;
+      
+      // Check if we've received scroll ticks recently
+      if (scrollBufferRef.current.length > 0 && timeSinceLastTick < TICK_TIMEOUT) {
+        // We're actively scrolling - accelerate velocity
+        const direction = scrollDirectionRef.current;
+        scrollVelocityRef.current = Math.min(
+          scrollVelocityRef.current + ACCELERATION,
+          MAX_VELOCITY
+        );
         
-        // Calculate velocity-based scroll amount
-        const now = Date.now();
-        const timeDelta = now - lastScrollTimeRef.current;
-        lastScrollTimeRef.current = now;
-        
-        // Determine scroll amount based on velocity
-        // Fast scrolling (< 100ms between events) = larger jumps (30-40px)
-        // Medium scrolling (100-300ms) = medium jumps (20-30px)
-        // Slow scrolling (> 300ms) = small jumps (10-20px)
-        let scrollAmount;
-        if (timeDelta < 100) {
-          scrollAmount = 35; // Fast
-        } else if (timeDelta < 300) {
-          scrollAmount = 22; // Medium
-        } else {
-          scrollAmount = 12; // Slow/deliberate
+        // Apply the scroll
+        if (Math.abs(scrollVelocityRef.current) > VELOCITY_THRESHOLD) {
+          container.scrollTop += direction * scrollVelocityRef.current;
         }
         
-        container.scrollBy({
-          top: direction * scrollAmount,
-          behavior: 'smooth'
-        });
+        // Continue animation
+        animationFrameRef.current = requestAnimationFrame(animateScroll);
+      } else if (Math.abs(scrollVelocityRef.current) > VELOCITY_THRESHOLD) {
+        // No recent ticks, but we have momentum - decelerate
+        scrollVelocityRef.current *= DECELERATION;
+        
+        // Apply remaining momentum
+        const direction = scrollDirectionRef.current;
+        container.scrollTop += direction * scrollVelocityRef.current;
+        
+        // Continue animation
+        animationFrameRef.current = requestAnimationFrame(animateScroll);
+      } else {
+        // Velocity too low, stop animation
+        scrollVelocityRef.current = 0;
+        scrollDirectionRef.current = 0;
+        scrollBufferRef.current = [];
+        animationFrameRef.current = null;
+      }
+    };
+    
+    // Handle individual scroll tick
+    const handleScrollTick = (direction) => {
+      const now = Date.now();
+      
+      // Add tick to buffer
+      scrollBufferRef.current.push({ time: now, direction });
+      
+      // Clean old ticks from buffer (older than 200ms)
+      scrollBufferRef.current = scrollBufferRef.current.filter(
+        tick => now - tick.time < 200
+      );
+      
+      // Update direction
+      scrollDirectionRef.current = direction;
+      lastTickTimeRef.current = now;
+      
+      // Start velocity from base if not already scrolling
+      if (scrollVelocityRef.current < BASE_VELOCITY) {
+        scrollVelocityRef.current = BASE_VELOCITY;
+      }
+      
+      // Start animation loop if not already running
+      if (!animationFrameRef.current) {
+        animationFrameRef.current = requestAnimationFrame(animateScroll);
       }
     };
 
@@ -300,12 +355,12 @@ function App() {
     // "scrollDown" = wheel turns down = moves content UP (decrease scrollTop)
     const handleScrollDown = (event) => {
       event.preventDefault();
-      scrollContainer(-1); // scrollDown event = moves content UP
+      handleScrollTick(-1); // scrollDown event = moves content UP
     };
 
     const handleScrollUp = (event) => {
       event.preventDefault();
-      scrollContainer(1); // scrollUp event = moves content DOWN
+      handleScrollTick(1); // scrollUp event = moves content DOWN
     };
 
     const handleKeyDown = (event) => {
@@ -313,11 +368,11 @@ function App() {
       switch (event.key) {
         case 'ArrowUp':
           event.preventDefault();
-          scrollContainer(-1);
+          handleScrollTick(-1);
           break;
         case 'ArrowDown':
           event.preventDefault();
-          scrollContainer(1);
+          handleScrollTick(1);
           break;
         default:
           break;
@@ -333,8 +388,11 @@ function App() {
     // Add keyboard listener
     document.addEventListener('keydown', handleKeyDown);
 
-    // Cleanup event listeners on component unmount
+    // Cleanup event listeners and animation on component unmount
     return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
       window.removeEventListener('scrollDown', handleScrollDown, { capture: true });
       window.removeEventListener('scrollUp', handleScrollUp, { capture: true });
       document.removeEventListener('scrollDown', handleScrollDown, { capture: true });
@@ -389,6 +447,7 @@ function App() {
     return (
       <div className="viewport">
         <div className="App main-menu">
+          <div className="version">v1.0</div>
           <div className="home-hero">
             <div className="reddit-logo">
               <div className="reddit-icon">r/</div>
