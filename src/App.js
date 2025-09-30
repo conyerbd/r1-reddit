@@ -12,6 +12,7 @@ function App() {
   const [postLoading, setPostLoading] = useState(false);
   const postsContainerRef = useRef(null);
   const lastScrollTimeRef = useRef(Date.now());
+  const [customSubreddit, setCustomSubreddit] = useState('');
 
   // Function to get RSS URL based on feed type
   const getRSSUrl = (feedType) => {
@@ -252,6 +253,17 @@ function App() {
     setCurrentView('feed');
   };
 
+  const handleCustomSubreddit = (e) => {
+    e.preventDefault();
+    const subreddit = customSubreddit.trim();
+    if (subreddit) {
+      // Remove r/ prefix if user includes it
+      const cleanSubreddit = subreddit.replace(/^r\//i, '');
+      selectFeed(cleanSubreddit);
+      setCustomSubreddit(''); // Clear input after navigating
+    }
+  };
+
   // Scroll wheel and keyboard functionality for Rabbit R1 device
   useEffect(() => {
     const scrollContainer = (direction) => {
@@ -385,12 +397,18 @@ function App() {
             <p className="home-subtitle">for Rabbit R1</p>
           </div>
           <main className="main-menu-container">
-            <button className="main-menu-button home-button" onClick={() => selectFeed('home')}>
-              <span className="button-content">
-                <span className="button-title">Home</span>
-                <span className="button-desc">Your feed</span>
-              </span>
-            </button>
+            <form className="subreddit-input-form" onSubmit={handleCustomSubreddit}>
+              <div className="input-wrapper">
+                <input
+                  type="text"
+                  className="subreddit-input"
+                  placeholder="Enter subreddit..."
+                  value={customSubreddit}
+                  onChange={(e) => setCustomSubreddit(e.target.value)}
+                />
+                <button type="submit" className="go-button">Go</button>
+              </div>
+            </form>
             <button className="main-menu-button popular-button" onClick={() => selectFeed('popular')}>
               <span className="button-content">
                 <span className="button-title">Popular</span>

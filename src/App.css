@@ -172,14 +172,15 @@ body {
   align-items: center;
   height: 100%;
   background: linear-gradient(135deg, #ff4500 0%, #ff6a33 100%);
-  padding: 16px 0 12px 0;
-  gap: 16px;
+  padding: 16px 0 0 0;
+  overflow: hidden;
 }
 
 /* Home hero section */
 .home-hero {
   text-align: center;
   padding: 8px 0;
+  flex-shrink: 0;
 }
 
 .reddit-logo {
@@ -221,7 +222,71 @@ body {
   flex-direction: column;
   gap: 8px;
   width: 100%;
-  padding: 0 16px;
+  padding: 12px 16px 16px 16px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  flex: 1;
+  scroll-behavior: smooth;
+}
+
+/* Subreddit input form */
+.subreddit-input-form {
+  width: 100%;
+  margin-bottom: 4px;
+}
+
+.input-wrapper {
+  position: relative;
+  width: 100%;
+}
+
+.subreddit-input {
+  width: 100%;
+  padding: 12px 60px 12px 14px;
+  border: 2px solid white;
+  border-radius: 12px;
+  font-size: 14px;
+  font-family: inherit;
+  background: white;
+  color: #1c1c1c;
+  outline: none;
+  font-weight: 500;
+}
+
+.subreddit-input::placeholder {
+  color: #999;
+  font-weight: 400;
+}
+
+.subreddit-input:focus {
+  border-color: #ff4500;
+  box-shadow: 0 0 0 2px rgba(255, 69, 0, 0.2);
+}
+
+.go-button {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #ff4500;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+  transition: all 0.2s;
+}
+
+.go-button:hover {
+  background: #cc3700;
+}
+
+.go-button:active {
+  transform: translateY(-50%) scale(0.95);
 }
 
 .main-menu-button {
@@ -277,8 +342,8 @@ body {
   background: #ff4500;
   border: none;
   color: white;
-  font-size: 14px;
-  font-weight: bold;
+  font-size: 14 px;
+  font-weight: 900;
   cursor: pointer;
   padding: 4px 8px;
   margin: 0;
@@ -288,6 +353,7 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+
 }
 
 .back-button:active {
@@ -406,6 +472,22 @@ body {
 .post-content-container::-webkit-scrollbar-thumb:hover {
   background: #cc3700;
 }
+
+/* Main menu scrollbar */
+.main-menu-container::-webkit-scrollbar {
+  width: 4px;
+}
+.main-menu-container::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.2);
+}
+.main-menu-container::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.5);
+  border-radius: 2px;
+}
+.main-menu-container::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.7);
+}
+
 * {
   scrollbar-width: thin;
   scrollbar-color: #ff4500 #f1f1f1;
