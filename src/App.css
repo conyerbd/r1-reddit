@@ -139,6 +139,47 @@ body {
   background: #f8f9fa;
 }
 
+/* Post card content layout */
+.post-card-content {
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+}
+
+.post-card-text {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Post thumbnail button in feed */
+.post-thumbnail-button {
+  flex-shrink: 0;
+  width: 60px;
+  height: 60px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #f0f0f0;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: opacity 0.2s;
+}
+
+.post-thumbnail-button:hover {
+  opacity: 0.8;
+}
+
+.post-thumbnail-button:active {
+  opacity: 0.6;
+}
+
+.post-thumbnail-button img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
 /* Post title - larger and bolder */
 .post-title {
   margin: 0 0 4px 0;
@@ -466,7 +507,7 @@ body {
 
 .post-subreddit {
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 16px;
+  font-size: 18px;
   font-weight: bold;
   color: #ff4500;
   margin: 0;
@@ -492,6 +533,22 @@ body {
   color: #1c1c1c;
   margin-bottom: 8px;
   line-height: 1.3;
+}
+
+/* Post image container - full width display */
+.post-image-container {
+  margin-bottom: 12px;
+  width: 100%;
+  max-width: 228px;
+  overflow: hidden;
+  border-radius: 4px;
+  background: #f0f0f0;
+}
+
+.post-image {
+  width: 100%;
+  height: auto;
+  display: block;
 }
 
 /* Main post content - displayed directly under title */

@@ -89,6 +89,7 @@ function App() {
           const authorElement = entry.querySelector('author name');
           const updatedElement = entry.querySelector('updated');
           const idElement = entry.querySelector('id');
+          const thumbnailElement = entry.querySelector('thumbnail');
 
           const title = titleElement?.textContent || `Post ${index + 1}`;
           const link = linkElement?.getAttribute('href') || linkElement?.textContent || '';
@@ -102,21 +103,31 @@ function App() {
           const subredditMatch = link.match(/\/r\/([^/]+)\//);
           const actualSubreddit = subredditMatch ? subredditMatch[1] : feedType;
 
-          return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id };
+          // Extract i.redd.it image URL from content
+          let imageUrl = null;
+          const ireddItMatch = content.match(/https:\/\/i\.redd\.it\/[^\s"<>]+\.(png|jpg|jpeg|gif)/i);
+          if (ireddItMatch) {
+            imageUrl = ireddItMatch[0];
+          }
+          
+          // Also check thumbnail element
+          const thumbnailUrl = thumbnailElement?.getAttribute('url');
+          if (thumbnailUrl && thumbnailUrl.includes('preview.redd.it')) {
+            // Extract the i.redd.it URL from preview URL if available
+            if (!imageUrl && ireddItMatch) {
+              imageUrl = ireddItMatch[0];
+            }
+          }
+
+          return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id, imageUrl };
         }).filter(post => {
           // Check both the link and the content for media indicators
           const combinedText = post.link + ' ' + (post.content || '');
           
-          // Filter out image posts
-          const isImagePost = combinedText.includes('i.redd.it') || 
-                             combinedText.includes('i.imgur.com') ||
-                             combinedText.includes('preview.redd.it') ||
+          // Allow i.redd.it image posts, but filter out other image types
+          const isOtherImagePost = combinedText.includes('i.imgur.com') ||
                              combinedText.includes('/gallery/') ||
-                             combinedText.includes('gallery.reddit.com') ||
-                             combinedText.includes('.jpg') ||
-                             combinedText.includes('.jpeg') ||
-                             combinedText.includes('.png') ||
-                             combinedText.includes('.gif');
+                             combinedText.includes('gallery.reddit.com');
           
           // Filter out video posts
           const isVideoPost = combinedText.includes('v.redd.it') ||
@@ -126,10 +137,11 @@ function App() {
                              combinedText.includes('streamable.com') ||
                              combinedText.includes('external-preview.redd.it');
           
-          // Check if content has an image tag but minimal text content
+          // Check if content has an image tag but minimal text content (and no i.redd.it URL)
           const hasOnlyImage = post.content && 
                               post.content.includes('<img') && 
-                              post.content.replace(/<[^>]*>/g, '').trim().length < 100;
+                              post.content.replace(/<[^>]*>/g, '').trim().length < 100 &&
+                              !post.imageUrl;
           
           // Also filter out posts from image-focused subreddits
           const imageSubreddits = ['pics', 'images', 'itookapicture', 'earthporn', 'memes', 
@@ -138,7 +150,7 @@ function App() {
             post.subreddit.toLowerCase() === sub.toLowerCase()
           );
           
-          return !isImagePost && !isVideoPost && !hasOnlyImage && !isImageSubreddit;
+          return !isOtherImagePost && !isVideoPost && !hasOnlyImage && !isImageSubreddit;
         }).slice(0, 20); // Take first 20 posts after filtering
         
         setPosts(parsedPosts);
@@ -211,6 +223,7 @@ function App() {
           const authorElement = entry.querySelector('author name');
           const updatedElement = entry.querySelector('updated');
           const idElement = entry.querySelector('id');
+          const thumbnailElement = entry.querySelector('thumbnail');
 
           const title = titleElement?.textContent || `Post ${index + 1}`;
           const link = linkElement?.getAttribute('href') || linkElement?.textContent || '';
@@ -223,19 +236,21 @@ function App() {
           const subredditMatch = link.match(/\/r\/([^/]+)\//);
           const actualSubreddit = subredditMatch ? subredditMatch[1] : currentFeed;
 
-          return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id };
+          // Extract i.redd.it image URL from content
+          let imageUrl = null;
+          const ireddItMatch = content.match(/https:\/\/i\.redd\.it\/[^\s"<>]+\.(png|jpg|jpeg|gif)/i);
+          if (ireddItMatch) {
+            imageUrl = ireddItMatch[0];
+          }
+
+          return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id, imageUrl };
         }).filter(post => {
           const combinedText = post.link + ' ' + (post.content || '');
           
-          const isImagePost = combinedText.includes('i.redd.it') || 
-                             combinedText.includes('i.imgur.com') ||
-                             combinedText.includes('preview.redd.it') ||
+          // Allow i.redd.it image posts, but filter out other image types
+          const isOtherImagePost = combinedText.includes('i.imgur.com') ||
                              combinedText.includes('/gallery/') ||
-                             combinedText.includes('gallery.reddit.com') ||
-                             combinedText.includes('.jpg') ||
-                             combinedText.includes('.jpeg') ||
-                             combinedText.includes('.png') ||
-                             combinedText.includes('.gif');
+                             combinedText.includes('gallery.reddit.com');
           
           const isVideoPost = combinedText.includes('v.redd.it') ||
                              combinedText.includes('youtube.com') ||
@@ -246,7 +261,8 @@ function App() {
           
           const hasOnlyImage = post.content && 
                               post.content.includes('<img') && 
-                              post.content.replace(/<[^>]*>/g, '').trim().length < 100;
+                              post.content.replace(/<[^>]*>/g, '').trim().length < 100 &&
+                              !post.imageUrl;
           
           const imageSubreddits = ['pics', 'images', 'itookapicture', 'earthporn', 'memes', 
                                    'dankmemes', 'meirl', 'me_irl', 'comics', 'gifs'];
@@ -254,7 +270,7 @@ function App() {
             post.subreddit.toLowerCase() === sub.toLowerCase()
           );
           
-          return !isImagePost && !isVideoPost && !hasOnlyImage && !isImageSubreddit;
+          return !isOtherImagePost && !isVideoPost && !hasOnlyImage && !isImageSubreddit;
         }).slice(0, 20);
         
         // Append new posts to existing ones
@@ -281,10 +297,10 @@ function App() {
   }, [currentFeed]);
 
   // Function to fetch and display individual post JSON content
-  const fetchPostContent = async (postUrl, postTitle, subreddit) => {
+  const fetchPostContent = async (postUrl, postTitle, subreddit, imageUrl = null) => {
     setPostLoading(true);
     setCurrentView('post');
-    setCurrentPost({ title: postTitle, url: postUrl, subreddit: subreddit });
+    setCurrentPost({ title: postTitle, url: postUrl, subreddit: subreddit, imageUrl: imageUrl });
     
     try {
       console.log('Fetching post JSON:', postUrl);
@@ -601,7 +617,7 @@ function App() {
     return (
       <div className="viewport">
         <div className="App main-menu">
-          <div className="version">v1.2</div>
+          <div className="version">v1.3</div>
           <div className="home-hero">
             <div className="reddit-logo">
               <div className="reddit-icon">r/</div>
@@ -705,17 +721,30 @@ function App() {
           <main className="posts-container" ref={postsContainerRef}>
             {posts.map((post, index) => (
               <article key={post.id || index} className="post-card">
-                <h2 className="post-title">
-                  <button 
-                    className="post-link" 
-                    onClick={() => fetchPostContent(post.link, post.title, post.subreddit)}
-                  >
-                    {post.title}
-                  </button>
-                </h2>
-                <div className="post-meta">
-                  <span className="post-author">u/{post.author}</span>
-                  <span className="post-date">{timeAgo(post.updated)}</span>
+                <div className="post-card-content">
+                  <div className="post-card-text">
+                    <h2 className="post-title">
+                      <button 
+                        className="post-link" 
+                        onClick={() => fetchPostContent(post.link, post.title, post.subreddit, post.imageUrl)}
+                      >
+                        {post.title}
+                      </button>
+                    </h2>
+                    <div className="post-meta">
+                      <span className="post-author">u/{post.author}</span>
+                      <span className="post-date">{timeAgo(post.updated)}</span>
+                    </div>
+                  </div>
+                  {post.imageUrl && (
+                    <button 
+                      className="post-thumbnail-button"
+                      onClick={() => fetchPostContent(post.link, post.title, post.subreddit, post.imageUrl)}
+                      aria-label={`View post: ${post.title}`}
+                    >
+                      <img src={post.imageUrl} alt="" />
+                    </button>
+                  )}
                 </div>
               </article>
             ))}
@@ -740,7 +769,7 @@ function App() {
       <div className="viewport">
         <div className="App">
           <header className="post-header">
-            <h1 className="post-subreddit">r/{currentPost?.subreddit || 'reddit'}</h1>
+            <h1 className="post-subreddit">r/{(currentPost?.subreddit || 'reddit').toLowerCase()}</h1>
             <button className="back-button" onClick={goBackToFeed}>←</button>
           </header>
           <main className="post-content-container" ref={postsContainerRef}>
@@ -753,6 +782,11 @@ function App() {
             ) : postContent ? (
               <div className="post-content">
                 <h2 className="main-post-title">{cleanPostTitle(postContent.title)}</h2>
+                {currentPost?.imageUrl && (
+                  <div className="post-image-container">
+                    <img src={currentPost.imageUrl} alt="" className="post-image" />
+                  </div>
+                )}
                 {(() => {
                   // Find and display main post content separately
                   const mainPost = postContent.entries?.find(entry => entry.isMainPost);
