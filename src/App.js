@@ -176,7 +176,7 @@ function App() {
       const entries = xmlDoc.querySelectorAll('entry');
       
       if (entries.length > 0) {
-        // Filter to get only top-level comments (exclude nested replies)
+        // Parse all entries from the RSS feed
         const allEntries = Array.from(entries).map((entry, index) => {
           const title = entry.querySelector('title')?.textContent || '';
           const content = entry.querySelector('content')?.textContent || '';
@@ -186,20 +186,31 @@ function App() {
           const link = entry.querySelector('link')?.getAttribute('href') || '';
           const isMainPost = index === 0; // First entry is usually the main post
           
-          // Check if this is a top-level comment by analyzing the URL structure
-          // Top-level comments: /r/sub/comments/postid/_/commentid/ (or without trailing slash)
-          // Child comments: /r/sub/comments/postid/_/parentid/childid/ (or more levels deep)
-          let isTopLevel = isMainPost;
+          // Determine if this is a top-level comment by analyzing URL structure
+          let isTopLevel = false;
           
-          if (!isMainPost && link) {
-            // Extract everything after /comments/postid/_/ 
-            const afterCommentPath = link.split('/_/')[1];
-            if (afterCommentPath) {
+          if (isMainPost) {
+            isTopLevel = false; // Main post is not a comment
+          } else if (link) {
+            // Reddit comment URL structure:
+            // Top-level: /r/sub/comments/postid/_/commentid
+            // Nested: /r/sub/comments/postid/_/commentid/nestedid (or more levels)
+            
+            // Extract the part after /comments/
+            const commentsMatch = link.match(/\/comments\/[^/]+\/_\/(.+?)(?:[?#]|$)/);
+            if (commentsMatch) {
+              const pathAfterUnderscore = commentsMatch[1];
               // Remove trailing slash and split by /
-              const pathSegments = afterCommentPath.replace(/\/$/, '').split('/').filter(Boolean);
+              const segments = pathAfterUnderscore.replace(/\/$/, '').split('/').filter(s => s.length > 0);
               // Top-level comments have exactly 1 segment (just the comment ID)
-              // Child comments have 2+ segments (parent ID + child ID + ...)
-              isTopLevel = pathSegments.length === 1;
+              isTopLevel = segments.length === 1;
+              
+              // Debug logging
+              console.log(`Comment ${index}: segments=${segments.length}, isTopLevel=${isTopLevel}, path=${pathAfterUnderscore}`);
+            } else {
+              // If we can't parse the URL, assume it's top-level to be safe
+              console.log(`Comment ${index}: Could not parse URL, assuming top-level. Link: ${link}`);
+              isTopLevel = true;
             }
           }
           
@@ -211,14 +222,16 @@ function App() {
             isMainPost,
             isTopLevel,
             id,
-            link  // Keep link for debugging
+            link
           };
         });
         
-        // Get main post and top 10 top-level comments
+        // Get main post and up to 10 top-level comments
         const mainPost = allEntries[0];
         const topLevelComments = allEntries.slice(1).filter(entry => entry.isTopLevel).slice(0, 10);
         const filteredEntries = [mainPost, ...topLevelComments];
+        
+        console.log(`Total entries: ${allEntries.length}, Top-level comments found: ${topLevelComments.length}, Showing: ${filteredEntries.length}`);
         
         const postData = {
           title: xmlDoc.querySelector('title')?.textContent || postTitle,
