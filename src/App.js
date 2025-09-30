@@ -243,25 +243,25 @@ function App() {
 
   // Scroll wheel and keyboard functionality for Rabbit R1 device
   useEffect(() => {
-    const scrollContainer = (direction) => {
+    const scrollContainer = (amount) => {
       if (postsContainerRef.current) {
         const container = postsContainerRef.current;
-        const scrollAmount = 60; // Pixels to scroll per step
-        const newScrollTop = container.scrollTop + (direction * scrollAmount);
-        
-        // Smooth scroll to new position
-        container.scrollTo({
-          top: newScrollTop,
-          behavior: 'smooth'
-        });
+        container.scrollTop += amount;
       }
     };
 
-    const handleWheel = (event) => {
+    // R1 scroll wheel events: "scrollUp" = wheel up, "scroll" = wheel down
+    const handleScrollUp = (event) => {
       event.preventDefault();
-      // Determine scroll direction based on wheel delta
-      const scrollDirection = event.deltaY > 0 ? 1 : -1;
-      scrollContainer(scrollDirection);
+      scrollContainer(40); // Scroll content down (see items below)
+    };
+
+    const handleScroll = (event) => {
+      // Only handle window-level scroll events from R1 wheel, not container scroll feedback
+      if (event.target !== postsContainerRef.current) {
+        event.preventDefault();
+        scrollContainer(-40); // Scroll content up (see items above)
+      }
     };
 
     const handleKeyDown = (event) => {
@@ -269,33 +269,33 @@ function App() {
       switch (event.key) {
         case 'ArrowUp':
           event.preventDefault();
-          scrollContainer(-1);
+          scrollContainer(-40);
           break;
         case 'ArrowDown':
           event.preventDefault();
-          scrollContainer(1);
+          scrollContainer(40);
           break;
         default:
           break;
       }
     };
 
-    // Add event listeners to the entire app
-    const appElement = document.querySelector('.App');
-    if (appElement) {
-      appElement.addEventListener('wheel', handleWheel, { passive: false });
-      appElement.addEventListener('keydown', handleKeyDown);
-      // Make the app focusable for keyboard events
-      appElement.setAttribute('tabindex', '0');
-      appElement.focus();
-    }
+    // Add R1 scroll wheel event listeners
+    window.addEventListener('scrollUp', handleScrollUp, { passive: false, capture: true });
+    window.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    document.addEventListener('scrollUp', handleScrollUp, { passive: false, capture: true });
+    document.addEventListener('scroll', handleScroll, { passive: false, capture: true });
+    
+    // Add keyboard listener
+    document.addEventListener('keydown', handleKeyDown);
 
     // Cleanup event listeners on component unmount
     return () => {
-      if (appElement) {
-        appElement.removeEventListener('wheel', handleWheel);
-        appElement.removeEventListener('keydown', handleKeyDown);
-      }
+      window.removeEventListener('scrollUp', handleScrollUp, { capture: true });
+      window.removeEventListener('scroll', handleScroll, { capture: true });
+      document.removeEventListener('scrollUp', handleScrollUp, { capture: true });
+      document.removeEventListener('scroll', handleScroll, { capture: true });
+      document.removeEventListener('keydown', handleKeyDown);
     };
   }, [loading, currentView]); // Re-run when loading state or view changes
 
