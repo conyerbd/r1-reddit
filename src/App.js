@@ -601,7 +601,7 @@ function App() {
     return (
       <div className="viewport">
         <div className="App main-menu">
-          <div className="version">v1.1</div>
+          <div className="version">v1.2</div>
           <div className="home-hero">
             <div className="reddit-logo">
               <div className="reddit-icon">r/</div>
@@ -660,7 +660,9 @@ function App() {
               <h1>r/{currentFeed}</h1>
               <button className="back-button" onClick={() => setCurrentView('main')}>←</button>
             </header>
-            <div className="loading">loading r/{currentFeed} posts...</div>
+            <div className="loading">
+              <div className="spinner"></div>
+            </div>
           </div>
         </div>
       );
@@ -743,7 +745,9 @@ function App() {
           </header>
           <main className="post-content-container" ref={postsContainerRef}>
             {postLoading ? (
-              <div className="loading">Loading post...</div>
+              <div className="loading">
+                <div className="spinner"></div>
+              </div>
             ) : postContent?.error ? (
               <div className="error">{postContent.error}</div>
             ) : postContent ? (
