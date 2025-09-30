@@ -85,13 +85,13 @@ function App() {
           const author = authorElement?.textContent?.replace('/u/', '') || 'Unknown';
           const updated = updatedElement?.textContent || new Date().toISOString();
           const id = idElement?.textContent || `post-${index}`;
-          const rssLink = link.includes('/comments/') ? link + '.rss' : link;
+          const jsonLink = link.includes('/comments/') ? link + '.json' : link;
           
           // Extract actual subreddit from the link (format: /r/SubredditName/)
           const subredditMatch = link.match(/\/r\/([^/]+)\//);
           const actualSubreddit = subredditMatch ? subredditMatch[1] : feedType;
 
-          return { title, link: rssLink, content, author, updated, subreddit: actualSubreddit, id };
+          return { title, link: jsonLink, content, author, updated, subreddit: actualSubreddit, id };
         }).filter(post => {
           // Filter out image, gallery, and video posts
           const isImagePost = post.link.includes('i.redd.it') || 
@@ -130,16 +130,16 @@ function App() {
     }
   }, [currentFeed]);
 
-  // Function to fetch and display individual post RSS content
+  // Function to fetch and display individual post JSON content
   const fetchPostContent = async (postUrl, postTitle, subreddit) => {
     setPostLoading(true);
     setCurrentView('post');
     setCurrentPost({ title: postTitle, url: postUrl, subreddit: subreddit });
     
     try {
-      console.log('Fetching post RSS:', postUrl);
+      console.log('Fetching post JSON:', postUrl);
       
-      // Try multiple proxy services for the RSS content
+      // Try multiple proxy services for the JSON content
       const proxies = [
         `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(postUrl)}`,
         `https://corsproxy.io/?${encodeURIComponent(postUrl)}`,
@@ -147,7 +147,7 @@ function App() {
         postUrl
       ];
       
-      let xmlContent = null;
+      let jsonData = null;
       
       for (const proxyUrl of proxies) {
         try {
@@ -156,9 +156,14 @@ function App() {
           
           if (response.ok) {
             const text = await response.text();
-            if (text.includes('<?xml')) {
-              xmlContent = text;
-              break;
+            try {
+              const parsed = JSON.parse(text);
+              if (Array.isArray(parsed) && parsed.length >= 2) {
+                jsonData = parsed;
+                break;
+              }
+            } catch (parseErr) {
+              console.log('JSON parse failed for proxy:', proxyUrl);
             }
           }
         } catch (proxyErr) {
@@ -167,82 +172,62 @@ function App() {
         }
       }
       
-      if (!xmlContent) {
+      if (!jsonData) {
         throw new Error('Failed to fetch post content');
       }
       
-      // Parse the post RSS XML
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-      const entries = xmlDoc.querySelectorAll('entry');
+      // Parse Reddit JSON structure
+      // jsonData[0] = post data
+      // jsonData[1] = comments data
+      const postData = jsonData[0].data.children[0].data;
+      const commentsData = jsonData[1].data.children;
       
-      if (entries.length > 0) {
-        // Parse all entries from the RSS feed
-        const allEntries = Array.from(entries).map((entry, index) => {
-          const title = entry.querySelector('title')?.textContent || '';
-          const content = entry.querySelector('content')?.textContent || '';
-          const author = entry.querySelector('author name')?.textContent?.replace('/u/', '') || 'Unknown';
-          const updated = entry.querySelector('updated')?.textContent || '';
-          const id = entry.querySelector('id')?.textContent || `entry-${index}`;
-          const link = entry.querySelector('link')?.getAttribute('href') || '';
-          const isMainPost = index === 0; // First entry is usually the main post
-          
-          // Determine if this is a top-level comment by analyzing URL structure
-          let isTopLevel = false;
-          
-          if (isMainPost) {
-            isTopLevel = false; // Main post is not a comment
-          } else if (link) {
-            // Reddit comment URL structure:
-            // Top-level: /r/sub/comments/postid/_/commentid
-            // Nested: /r/sub/comments/postid/_/commentid/nestedid (or more levels)
-            
-            // Extract the part after /comments/
-            const commentsMatch = link.match(/\/comments\/[^/]+\/_\/(.+?)(?:[?#]|$)/);
-            if (commentsMatch) {
-              const pathAfterUnderscore = commentsMatch[1];
-              // Remove trailing slash and split by /
-              const segments = pathAfterUnderscore.replace(/\/$/, '').split('/').filter(s => s.length > 0);
-              // Top-level comments have exactly 1 segment (just the comment ID)
-              isTopLevel = segments.length === 1;
-              
-              // Debug logging
-              console.log(`Comment ${index}: segments=${segments.length}, isTopLevel=${isTopLevel}, path=${pathAfterUnderscore}`);
-            } else {
-              // If we can't parse the URL, assume it's top-level to be safe
-              console.log(`Comment ${index}: Could not parse URL, assuming top-level. Link: ${link}`);
-              isTopLevel = true;
-            }
-          }
-          
-          return {
-            title,
-            content,
-            author,
-            updated,
-            isMainPost,
-            isTopLevel,
-            id,
-            link
-          };
-        });
+      // Extract main post info
+      const mainPost = {
+        title: postData.title,
+        content: postData.selftext || '',
+        author: postData.author,
+        updated: new Date(postData.created_utc * 1000).toISOString(),
+        isMainPost: true,
+        id: postData.id
+      };
+      
+      // Helper function to recursively collect comments
+      const collectComments = (comment, postId) => {
+        if (!comment.data || comment.kind === 'more') {
+          return null; // Skip "load more" placeholders
+        }
         
-        // Get main post and up to 10 top-level comments
-        const mainPost = allEntries[0];
-        const topLevelComments = allEntries.slice(1).filter(entry => entry.isTopLevel).slice(0, 10);
-        const filteredEntries = [mainPost, ...topLevelComments];
+        const data = comment.data;
+        const isTopLevel = data.parent_id === `t3_${postId}`; // t3_ prefix means parent is a post
         
-        console.log(`Total entries: ${allEntries.length}, Top-level comments found: ${topLevelComments.length}, Showing: ${filteredEntries.length}`);
-        
-        const postData = {
-          title: xmlDoc.querySelector('title')?.textContent || postTitle,
-          entries: filteredEntries
+        return {
+          content: data.body || '',
+          author: data.author,
+          updated: new Date(data.created_utc * 1000).toISOString(),
+          isMainPost: false,
+          isTopLevel: isTopLevel,
+          id: data.id
         };
-        
-        setPostContent(postData);
-      } else {
-        throw new Error('No content found in post RSS');
-      }
+      };
+      
+      // Collect all comments and filter for top-level only
+      const allComments = commentsData
+        .map(comment => collectComments(comment, postData.id))
+        .filter(comment => comment !== null);
+      
+      const topLevelComments = allComments
+        .filter(comment => comment.isTopLevel)
+        .slice(0, 10);
+      
+      console.log(`Total comments: ${allComments.length}, Top-level comments found: ${topLevelComments.length}`);
+      
+      const postContent = {
+        title: postData.title,
+        entries: [mainPost, ...topLevelComments]
+      };
+      
+      setPostContent(postContent);
       
     } catch (err) {
       console.error('Error fetching post content:', err);
@@ -358,22 +343,22 @@ function App() {
     return `${diffInDays}d`;
   };
 
-  // Helper function to clean HTML content for display
-  const cleanHtmlContent = (htmlContent) => {
-    if (!htmlContent) return '';
+  // Helper function to clean content for display (handles both HTML and plain text)
+  const cleanHtmlContent = (content) => {
+    if (!content) return '';
     
-    // Create a temporary div to parse HTML
-    const tempDiv = document.createElement('div');
-    tempDiv.innerHTML = htmlContent;
-    
-    // Get text content and clean it up
-    let text = tempDiv.textContent || tempDiv.innerText || '';
+    // If content contains HTML tags, parse it
+    if (content.includes('<')) {
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = content;
+      content = tempDiv.textContent || tempDiv.innerText || '';
+    }
     
     // Remove Reddit-specific markup
-    text = text.replace(/<!-- SC_OFF -->|<!-- SC_ON -->/g, '');
-    text = text.replace(/^\s+|\s+$/g, ''); // Trim whitespace
+    content = content.replace(/<!-- SC_OFF -->|<!-- SC_ON -->/g, '');
+    content = content.replace(/^\s+|\s+$/g, ''); // Trim whitespace
     
-    return text;
+    return content;
   };
 
   // Helper function to remove subreddit name from post title
