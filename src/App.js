@@ -250,17 +250,17 @@ function App() {
       }
     };
 
-    // R1 scroll wheel events: "scrollUp" = wheel up, "scroll" = wheel down
-    const handleScrollUp = (event) => {
+    // R1 scroll wheel events: "scroll" = wheel down, "scrollDown" = wheel up (backwards naming!)
+    const handleScrollDown = (event) => {
       event.preventDefault();
-      scrollContainer(40); // Scroll content down (see items below)
+      scrollContainer(-40); // scrollDown event = moves content UP
     };
 
     const handleScroll = (event) => {
       // Only handle window-level scroll events from R1 wheel, not container scroll feedback
       if (event.target !== postsContainerRef.current) {
         event.preventDefault();
-        scrollContainer(-40); // Scroll content up (see items above)
+        scrollContainer(40); // scroll event = moves content DOWN
       }
     };
 
@@ -281,9 +281,9 @@ function App() {
     };
 
     // Add R1 scroll wheel event listeners
-    window.addEventListener('scrollUp', handleScrollUp, { passive: false, capture: true });
+    window.addEventListener('scrollDown', handleScrollDown, { passive: false, capture: true });
     window.addEventListener('scroll', handleScroll, { passive: false, capture: true });
-    document.addEventListener('scrollUp', handleScrollUp, { passive: false, capture: true });
+    document.addEventListener('scrollDown', handleScrollDown, { passive: false, capture: true });
     document.addEventListener('scroll', handleScroll, { passive: false, capture: true });
     
     // Add keyboard listener
@@ -291,9 +291,9 @@ function App() {
 
     // Cleanup event listeners on component unmount
     return () => {
-      window.removeEventListener('scrollUp', handleScrollUp, { capture: true });
+      window.removeEventListener('scrollDown', handleScrollDown, { capture: true });
       window.removeEventListener('scroll', handleScroll, { capture: true });
-      document.removeEventListener('scrollUp', handleScrollUp, { capture: true });
+      document.removeEventListener('scrollDown', handleScrollDown, { capture: true });
       document.removeEventListener('scroll', handleScroll, { capture: true });
       document.removeEventListener('keydown', handleKeyDown);
     };
