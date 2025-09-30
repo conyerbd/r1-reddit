@@ -186,11 +186,22 @@ function App() {
           const link = entry.querySelector('link')?.getAttribute('href') || '';
           const isMainPost = index === 0; // First entry is usually the main post
           
-          // Check if this is a top-level comment by counting slashes in the comment ID portion
-          // Top-level comments have format: /r/sub/comments/postid/_/commentid/
-          // Child comments have format: /r/sub/comments/postid/_/parentid/childid/
-          const commentMatch = link.match(/\/comments\/[^/]+\/[^/]+\/([^/]+(?:\/[^/]+)*)/);
-          const isTopLevel = isMainPost || (commentMatch && commentMatch[1].split('/').filter(Boolean).length === 1);
+          // Check if this is a top-level comment by analyzing the URL structure
+          // Top-level comments: /r/sub/comments/postid/_/commentid/ (or without trailing slash)
+          // Child comments: /r/sub/comments/postid/_/parentid/childid/ (or more levels deep)
+          let isTopLevel = isMainPost;
+          
+          if (!isMainPost && link) {
+            // Extract everything after /comments/postid/_/ 
+            const afterCommentPath = link.split('/_/')[1];
+            if (afterCommentPath) {
+              // Remove trailing slash and split by /
+              const pathSegments = afterCommentPath.replace(/\/$/, '').split('/').filter(Boolean);
+              // Top-level comments have exactly 1 segment (just the comment ID)
+              // Child comments have 2+ segments (parent ID + child ID + ...)
+              isTopLevel = pathSegments.length === 1;
+            }
+          }
           
           return {
             title,
@@ -199,7 +210,8 @@ function App() {
             updated,
             isMainPost,
             isTopLevel,
-            id
+            id,
+            link  // Keep link for debugging
           };
         });
         

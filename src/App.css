@@ -277,14 +277,17 @@ body {
   background: #ff4500;
   border: none;
   color: white;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 14px;
+  font-weight: bold;
   cursor: pointer;
   padding: 4px 8px;
   margin: 0;
   font-family: inherit;
   border-radius: 4px;
   line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .back-button:active {
