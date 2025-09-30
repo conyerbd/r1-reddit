@@ -11,6 +11,7 @@ function App() {
   const [postContent, setPostContent] = useState(null);
   const [postLoading, setPostLoading] = useState(false);
   const postsContainerRef = useRef(null);
+  const lastScrollTimeRef = useRef(Date.now());
 
   // Function to get RSS URL based on feed type
   const getRSSUrl = (feedType) => {
@@ -268,11 +269,30 @@ function App() {
 
   // Scroll wheel and keyboard functionality for Rabbit R1 device
   useEffect(() => {
-    const scrollContainer = (amount) => {
+    const scrollContainer = (direction) => {
       if (postsContainerRef.current) {
         const container = postsContainerRef.current;
+        
+        // Calculate velocity-based scroll amount
+        const now = Date.now();
+        const timeDelta = now - lastScrollTimeRef.current;
+        lastScrollTimeRef.current = now;
+        
+        // Determine scroll amount based on velocity
+        // Fast scrolling (< 100ms between events) = larger jumps (30-40px)
+        // Medium scrolling (100-300ms) = medium jumps (20-30px)
+        // Slow scrolling (> 300ms) = small jumps (10-20px)
+        let scrollAmount;
+        if (timeDelta < 100) {
+          scrollAmount = 35; // Fast
+        } else if (timeDelta < 300) {
+          scrollAmount = 22; // Medium
+        } else {
+          scrollAmount = 12; // Slow/deliberate
+        }
+        
         container.scrollBy({
-          top: amount,
+          top: direction * scrollAmount,
           behavior: 'smooth'
         });
       }
@@ -283,12 +303,12 @@ function App() {
     // "scrollDown" = wheel turns down = moves content UP (decrease scrollTop)
     const handleScrollDown = (event) => {
       event.preventDefault();
-      scrollContainer(-40); // scrollDown event = moves content UP
+      scrollContainer(-1); // scrollDown event = moves content UP
     };
 
     const handleScrollUp = (event) => {
       event.preventDefault();
-      scrollContainer(40); // scrollUp event = moves content DOWN
+      scrollContainer(1); // scrollUp event = moves content DOWN
     };
 
     const handleKeyDown = (event) => {
@@ -296,11 +316,11 @@ function App() {
       switch (event.key) {
         case 'ArrowUp':
           event.preventDefault();
-          scrollContainer(-40);
+          scrollContainer(-1);
           break;
         case 'ArrowDown':
           event.preventDefault();
-          scrollContainer(40);
+          scrollContainer(1);
           break;
         default:
           break;
