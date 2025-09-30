@@ -416,6 +416,16 @@ function App() {
 
   // Smooth scrolling with momentum and buffering for Rabbit R1 device
   useEffect(() => {
+    // Reset scroll state when view changes
+    scrollVelocityRef.current = 0;
+    scrollDirectionRef.current = 0;
+    scrollBufferRef.current = [];
+    lastTickTimeRef.current = Date.now();
+    if (animationFrameRef.current) {
+      cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
+    }
+    
     // Constants for smooth scrolling
     const BASE_VELOCITY = 2;        // Start slow
     const MAX_VELOCITY = 15;        // Max speed when accelerating
@@ -591,7 +601,7 @@ function App() {
     return (
       <div className="viewport">
         <div className="App main-menu">
-          <div className="version">v1.0</div>
+          <div className="version">v1.1</div>
           <div className="home-hero">
             <div className="reddit-logo">
               <div className="reddit-icon">r/</div>
@@ -612,18 +622,29 @@ function App() {
                 <button type="submit" className="go-button">Go</button>
               </div>
             </form>
-            <button className="main-menu-button popular-button" onClick={() => selectFeed('popular')}>
-              <span className="button-content">
-                <span className="button-title">Popular</span>
-                <span className="button-desc">Trending posts</span>
-              </span>
-            </button>
-            <button className="main-menu-button all-button" onClick={() => selectFeed('all')}>
-              <span className="button-content">
-                <span className="button-title">All</span>
-                <span className="button-desc">Everything</span>
-              </span>
-            </button>
+            <div className="buttons-with-rabbit">
+              <div className="menu-buttons">
+                <button className="main-menu-button popular-button" onClick={() => selectFeed('popular')}>
+                  <span className="button-content">
+                    <span className="button-title">Popular</span>
+                    <span className="button-desc">Trending posts</span>
+                  </span>
+                </button>
+                <button className="main-menu-button all-button" onClick={() => selectFeed('all')}>
+                  <span className="button-content">
+                    <span className="button-title">All</span>
+                    <span className="button-desc">Everything</span>
+                  </span>
+                </button>
+              </div>
+              <button 
+                className="peeking-rabbit" 
+                onClick={() => selectFeed('rabbitr1')}
+                title="Visit r/rabbitr1"
+              >
+                <span className="rabbit-art">{`(\\__/)\n(•ㅅ•)\n/ 　 づ`}</span>
+              </button>
+            </div>
           </main>
         </div>
       </div>
@@ -637,7 +658,7 @@ function App() {
           <div className="App">
             <header className="app-header">
               <h1>r/{currentFeed}</h1>
-              <p className="last-updated">Loading...</p>
+              <button className="back-button" onClick={() => setCurrentView('main')}>←</button>
             </header>
             <div className="loading">loading r/{currentFeed} posts...</div>
           </div>
@@ -651,7 +672,7 @@ function App() {
           <div className="App">
             <header className="app-header">
               <h1>r/{currentFeed}</h1>
-              <p className="last-updated">Error</p>
+              <button className="back-button" onClick={() => setCurrentView('main')}>←</button>
             </header>
             <div className="error">
               <p>{error}</p>
@@ -728,21 +749,25 @@ function App() {
             ) : postContent ? (
               <div className="post-content">
                 <h2 className="main-post-title">{cleanPostTitle(postContent.title)}</h2>
-                {postContent.entries?.map((entry, index) => {
-                  // Skip the main post if it only contains "submitted by" info
-                  if (entry.isMainPost) {
-                    const content = cleanHtmlContent(entry.content);
-                    // Only show main post content if it has substantial content beyond submission info
-                    if (content && content.length > 100 && !content.toLowerCase().includes('submitted by')) {
+                {(() => {
+                  // Find and display main post content separately
+                  const mainPost = postContent.entries?.find(entry => entry.isMainPost);
+                  if (mainPost) {
+                    const content = cleanHtmlContent(mainPost.content);
+                    if (content && content.trim().length > 0) {
                       return (
-                        <div key={entry.id} className="content-entry main-post">
-                          <div className="entry-content">
-                            {content}
-                          </div>
+                        <div className="main-post-content">
+                          {content}
                         </div>
                       );
                     }
-                    return null; // Skip main post if it's just submission info
+                  }
+                  return null;
+                })()}
+                {postContent.entries?.map((entry, index) => {
+                  // Skip the main post since we already displayed it above
+                  if (entry.isMainPost) {
+                    return null;
                   }
                   
                   // Show comments
